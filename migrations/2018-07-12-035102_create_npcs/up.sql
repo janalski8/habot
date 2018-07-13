@@ -1,0 +1,15 @@
+CREATE TABLE `npc_classes` (
+        `id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `name`  TEXT NOT NULL UNIQUE,
+        `commonality`   INTEGER NOT NULL,
+        `next_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `active` INTEGER NOT NULL DEFAULT 1 
+);
+
+CREATE TABLE `npc_instances` (
+        `id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `class` INTEGER NOT NULL,
+    `active_until` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (class) REFERENCES npc_classes(id) ON DELETE CASCADE
+);
+
