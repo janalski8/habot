@@ -1,7 +1,10 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Command {
+    RemoveCommandAlias(String),
+    AddCommandAlias(String, String),
     ShowInstances,
     ShowInstancesVerbose,
     ShowClasses,
@@ -13,13 +16,19 @@ pub enum Command {
     ChangeClassFreq(String, i32),
     ChangeClassActive(String, bool),
     FastForward(i32),
+    ChangeStarter(String),
 }
 
 pub fn parse_command(mut command: Vec<String>) -> Result<Command, String> {
     command.reverse();
 
     let command_group: String = command.pop().ok_or_else(|| {
-        "available commands: show | add | remove | change | fast-forward [minutes: integer]"
+        "available commands: \
+         show | \
+         add | \
+         remove | \
+         change | \
+         fast-forward [minutes: integer]"
             .to_string()
     })?;
 
@@ -38,9 +47,12 @@ pub fn parse_command(mut command: Vec<String>) -> Result<Command, String> {
 }
 
 pub fn parse_show(mut command: Vec<String>) -> Result<Command, String> {
-    let target = command
-        .pop()
-        .ok_or_else(|| "available commands: instance verbose? | class".to_string())?;
+    let target = command.pop().ok_or_else(|| {
+        "available commands: \
+         instance verbose? | \
+         class"
+            .to_string()
+    })?;
 
     match target.as_ref() {
         "instance" => {
@@ -58,7 +70,10 @@ pub fn parse_show(mut command: Vec<String>) -> Result<Command, String> {
 
 pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: class [name] [freq: integer] [active?: true|false]".to_string()
+        "available commands: \
+         class [name] [freq: integer] [active?: true|false] | \
+         alias [command] [alias]"
+            .to_string()
     })?;
 
     match target.as_ref() {
@@ -76,13 +91,27 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
                 }
             }
         }
+        "alias" => {
+            let cmd = command
+                .pop()
+                .ok_or_else(|| format!("missing command string"))?;
+            let alias = command
+                .pop()
+                .ok_or_else(|| format!("missing alias string"))?;
+            Ok(Command::AddCommandAlias(cmd, alias))
+        }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }
 }
 
 pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: class [name] | instance [id: integer] | all_instances".to_string()
+        "available commands: \
+         class [name] | \
+         instance [id: integer] | \
+         all_instances | \
+         alias [alias]"
+            .to_string()
     })?;
 
     match target.as_ref() {
@@ -100,6 +129,12 @@ pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
             Ok(Command::RemoveInstance(id))
         }
         "all_instances" => Ok(Command::RemoveInstances),
+        "alias" => {
+            let alias = command
+                .pop()
+                .ok_or_else(|| format!("alias string missing"))?;
+            Ok(Command::RemoveCommandAlias(alias))
+        }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }
 }
@@ -109,7 +144,8 @@ pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
         "available commands: \
          class [old_name] name [name] | \
          class [name] freq [freq: i32] | \
-         class [name] active [active: true|false]"
+         class [name] active [active: true|false] | \
+         starter [starter_string]"
             .to_string()
     })?;
 
@@ -120,7 +156,7 @@ pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
                 .ok_or_else(|| "class name missing".to_string())?;
             let key = command
                 .pop()
-                .ok_or_else(|| "available keys: name | frequency | active".to_string())?;
+                .ok_or_else(|| "available keys: name | freq | active".to_string())?;
             let value = command
                 .pop()
                 .ok_or_else(|| "new value missing".to_string())?;
@@ -140,6 +176,12 @@ pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
                 }
                 arg => Err(format!("invalid key: {}", arg)),
             }
+        }
+        "starter" => {
+            let starter = command
+                .pop()
+                .ok_or_else(|| format!("new starter string missing"))?;
+            Ok(Command::ChangeStarter(starter))
         }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }

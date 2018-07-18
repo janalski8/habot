@@ -12,11 +12,7 @@ fn main() -> Result<(), String> {
     let url = args.remove(0);
     let connection = establish_connection(&url)?;
 
-    let mut command = args;
-    if command.len() > 0 && command[0].len() > 0 {
-        command[0].remove(0);
-    }
-    let command = parse_command(command.clone());
+    let command = parse_command(args);
 
     let result = match command {
         Err(e) => {

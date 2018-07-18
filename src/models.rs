@@ -1,5 +1,7 @@
 use chrono::NaiveDateTime;
-use schema::{npc_classes, npc_instances};
+use diesel::Insertable;
+use diesel::Queryable;
+use schema::{aliases, constants, npc_classes, npc_instances};
 
 #[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct NpcClass {
@@ -17,6 +19,20 @@ pub struct NpcInstance {
     pub active_until: NaiveDateTime,
 }
 
+#[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct Alias {
+    pub id: i32,
+    pub command: String,
+    pub alias: String,
+}
+
+#[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct Constant {
+    pub id: i32,
+    pub key: String,
+    pub value: Option<String>,
+}
+
 #[derive(Insertable, Debug)]
 #[table_name = "npc_classes"]
 pub struct NewNpcClass<'a> {
@@ -31,4 +47,18 @@ pub struct NewNpcClass<'a> {
 pub struct NewNpcInstance {
     pub class: i32,
     pub active_until: NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "aliases"]
+pub struct NewAlias<'a> {
+    pub command: &'a str,
+    pub alias: &'a str,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "constants"]
+pub struct NewConstant<'a> {
+    pub key: &'a str,
+    pub value: Option<&'a str>,
 }

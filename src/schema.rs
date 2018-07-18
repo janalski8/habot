@@ -1,4 +1,20 @@
 table! {
+    aliases (id) {
+        id -> Integer,
+        alias -> Text,
+        command -> Text,
+    }
+}
+
+table! {
+    constants (id) {
+        id -> Integer,
+        key -> Text,
+        value -> Nullable<Text>,
+    }
+}
+
+table! {
     npc_classes (id) {
         id -> Integer,
         name -> Text,
@@ -18,4 +34,4 @@ table! {
 
 joinable!(npc_instances -> npc_classes (class));
 
-allow_tables_to_appear_in_same_query!(npc_classes, npc_instances,);
+allow_tables_to_appear_in_same_query!(aliases, constants, npc_classes, npc_instances,);
