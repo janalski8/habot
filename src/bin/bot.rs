@@ -2,9 +2,9 @@ extern crate diesel;
 extern crate habot;
 extern crate serenity;
 extern crate shlex;
+extern crate itertools;
 
 use diesel::sqlite::SqliteConnection;
-use habot::command::parse_command;
 use habot::establish_connection;
 use habot::execute::execute_command;
 use habot::queries::get_constant;
@@ -51,9 +51,25 @@ impl EventHandler for Handler {
         };
 
         if let Some(text) = try_strip_of(&starter, &msg.content) {
-            let result = match self.process(&connection, text) {
-                Err(e) => msg.channel_id.say(format!("Error: {}", e)),
-                Ok(r) => msg.channel_id.say(r),
+            let text = match self.process(&connection, text) {
+                Err(e) => format!("Error: {}", e),
+                Ok(r) => r,
+            };
+            let result = if text.len() < 2000 {
+                msg.channel_id.say(text).map(|_| ())
+            } else {
+                let parts = chunk_lines(text);
+                let mut result = Ok(());
+                for part in parts {
+                    match msg.channel_id.say(part) {
+                        Ok(_) => {},
+                        Err(err) => {
+                            result = Err(err);
+                            break;
+                        },
+                    }
+                }
+                result
             };
             match result {
                 Ok(_) => {}
@@ -90,4 +106,19 @@ fn main() -> Result<(), String> {
         .start()
         .map_err(|e| format!("could not start bot: {}", e.to_string()))?;
     Ok(())
+}
+
+fn chunk_lines(input: String) -> Vec<String> {
+    let (mut parts, acc) = input.split('\n').fold((Vec::new(), String::new()), |(mut parts, mut acc), line|
+        if acc.len() + line.len() >= 2000 {
+            parts.push(acc);
+            (parts, line.to_string())
+        } else {
+            acc.push_str("\n");
+            acc.push_str(line);
+            (parts, acc)
+        }
+    );
+    parts.push(acc);
+    parts
 }

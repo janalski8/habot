@@ -137,7 +137,6 @@ pub fn aliases_map(entries: Vec<Alias>) -> Result<HashMap<String, Vec<String>>, 
     entries
         .into_iter()
         .map(|record| {
-            println!("{:?}", record.command);
             let cmd = serde_json::from_str::<Vec<String>>(&record.command);
             match cmd {
                 Ok(command) => Ok((record.alias, command)),
