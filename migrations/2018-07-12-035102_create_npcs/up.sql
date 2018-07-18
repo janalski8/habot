@@ -16,7 +16,7 @@ CREATE TABLE `npc_instances` (
 CREATE TABLE `constants` (
 	`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	`key`	TEXT NOT NULL UNIQUE,
-	`value`	TEXT
+	`value`	TEXT NOT NULL
 );
 
 CREATE TABLE `aliases` (

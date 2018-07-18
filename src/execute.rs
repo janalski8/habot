@@ -5,21 +5,21 @@ use command::Command;
 use diesel;
 use diesel::sqlite::SqliteConnection;
 use diesel::RunQueryDsl;
+use queries::add_alias;
 use queries::add_class;
 use queries::change_active;
+use queries::change_constant;
 use queries::change_freq;
 use queries::change_name;
 use queries::get_classes;
 use queries::get_instances;
+use queries::remove_alias;
 use queries::remove_class;
 use queries::remove_instance;
 use schema::npc_instances;
 use std::collections::HashMap;
 use timing::fast_forward_instances;
 use timing::update_instances;
-use queries::add_alias;
-use queries::remove_alias;
-use queries::change_constant;
 
 pub fn execute_command(connection: &SqliteConnection, command: Command) -> Result<String, String> {
     match command {
@@ -90,7 +90,7 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
         Command::AddClass(name, freq, active) => {
             add_class(connection, name, freq, active).map(|()| "ok".to_string())
         }
-        Command::AddCommandAlias(cmd, alias) => {
+        Command::AddAliasCommand(alias, cmd) => {
             add_alias(connection, cmd, alias).map(|()| "ok".to_string())
         }
         Command::RemoveInstances => diesel::delete(npc_instances::table)
@@ -99,7 +99,9 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
             .map_err(|e| format!("could not remove instances: {}", e)),
         Command::RemoveClass(name) => remove_class(connection, name).map(|()| "ok".to_string()),
         Command::RemoveInstance(id) => remove_instance(connection, id).map(|()| "ok".to_string()),
-        Command::RemoveCommandAlias(alias) => remove_alias(connection, alias).map(|()| "ok".to_string()),
+        Command::RemoveAliasCommand(alias) => {
+            remove_alias(connection, alias).map(|()| "ok".to_string())
+        }
         Command::ChangeClassName(old, new) => {
             change_name(connection, old, new).map(|()| "ok".to_string())
         }
@@ -110,7 +112,7 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
             change_active(connection, name, active).map(|()| "ok".to_string())
         }
         Command::ChangeStarter(starter) => {
-            change_constant(connection, "starter".to_string(), Some(starter)).map(|()| "ok".to_string())
+            change_constant(connection, "starter".to_string(), starter).map(|()| "ok".to_string())
         }
         Command::FastForward(minutes) => {
             fast_forward_instances(connection, chrono::Duration::minutes(minutes as i64))

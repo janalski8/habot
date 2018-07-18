@@ -1,10 +1,11 @@
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Command {
-    RemoveCommandAlias(String),
-    AddCommandAlias(String, String),
+    RemoveAliasCommand(String),
+    AddAliasCommand(String, Vec<String>),
     ShowInstances,
     ShowInstancesVerbose,
     ShowClasses,
@@ -17,6 +18,33 @@ pub enum Command {
     ChangeClassActive(String, bool),
     FastForward(i32),
     ChangeStarter(String),
+}
+
+pub fn parse_aliased(
+    mut command: Vec<String>,
+    aliases: HashMap<String, Vec<String>>,
+) -> Result<Command, String> {
+
+    if let Some(pattern) = command.get(0).and_then(|c| aliases.get(c)) {
+        command.reverse();
+        command.pop();
+        let mut output = pattern
+            .into_iter()
+            .map(|part| match part.as_ref() {
+                "?" => command
+                    .pop()
+                    .ok_or_else(|| "alias requires more arguments!".to_string()),
+                fixed => Ok(fixed.to_owned()),
+            })
+            .collect::<Result<Vec<_>, _>>();
+        let mut output = output?;
+        if command.len() > 0 {
+            return Err("alias didn't use all the arguments!".to_string());
+        }
+        parse_command(output)
+    } else {
+        parse_command(command)
+    }
 }
 
 pub fn parse_command(mut command: Vec<String>) -> Result<Command, String> {
@@ -72,7 +100,7 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
         "available commands: \
          class [name] [freq: integer] [active?: true|false] | \
-         alias [command] [alias]"
+         alias [alias] [command]"
             .to_string()
     })?;
 
@@ -92,13 +120,14 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
             }
         }
         "alias" => {
-            let cmd = command
-                .pop()
-                .ok_or_else(|| format!("missing command string"))?;
             let alias = command
                 .pop()
                 .ok_or_else(|| format!("missing alias string"))?;
-            Ok(Command::AddCommandAlias(cmd, alias))
+            if command.len() == 0 {
+                return Err(format!("missing command string"));
+            }
+            command.reverse();
+            Ok(Command::AddAliasCommand(alias, command))
         }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }
@@ -133,7 +162,7 @@ pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
             let alias = command
                 .pop()
                 .ok_or_else(|| format!("alias string missing"))?;
-            Ok(Command::RemoveCommandAlias(alias))
+            Ok(Command::RemoveAliasCommand(alias))
         }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }

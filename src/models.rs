@@ -22,15 +22,15 @@ pub struct NpcInstance {
 #[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Alias {
     pub id: i32,
-    pub command: String,
     pub alias: String,
+    pub command: String,
 }
 
 #[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Constant {
     pub id: i32,
     pub key: String,
-    pub value: Option<String>,
+    pub value: String,
 }
 
 #[derive(Insertable, Debug)]
@@ -52,13 +52,13 @@ pub struct NewNpcInstance {
 #[derive(Insertable, Debug)]
 #[table_name = "aliases"]
 pub struct NewAlias<'a> {
-    pub command: &'a str,
     pub alias: &'a str,
+    pub command: &'a str,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "constants"]
 pub struct NewConstant<'a> {
     pub key: &'a str,
-    pub value: Option<&'a str>,
+    pub value: &'a str,
 }

@@ -11,6 +11,8 @@ use models::NewNpcClass;
 use models::NpcClass;
 use models::NpcInstance;
 use schema::{aliases, constants, npc_classes, npc_instances};
+use serde_json;
+use std::collections::HashMap;
 
 pub fn add_class(
     connection: &SqliteConnection,
@@ -131,13 +133,34 @@ pub fn get_instances(
         })
 }
 
-pub fn get_aliases(connection: &SqliteConnection) -> Result<Vec<Alias>, String> {
+pub fn aliases_map(entries: Vec<Alias>) -> Result<HashMap<String, Vec<String>>, String> {
+    entries
+        .into_iter()
+        .map(|record| {
+            println!("{:?}", record.command);
+            let cmd = serde_json::from_str::<Vec<String>>(&record.command);
+            match cmd {
+                Ok(command) => Ok((record.alias, command)),
+                Err(e) => Err(format!(
+                    "invalid database entry, could not deserialize command: {}",
+                    e.to_string()
+                )),
+            }
+        })
+        .collect()
+}
+
+pub fn get_aliases(connection: &SqliteConnection) -> Result<HashMap<String, Vec<String>>, String> {
     aliases::table
         .load(connection)
         .map_err(|e| format!("could not query database for aliases: {}", e.to_string()))
+        .and_then(aliases_map)
 }
 
-pub fn get_constant(connection: &SqliteConnection, key: String) -> Result<Constant, String> {
+pub fn get_constant(
+    connection: &SqliteConnection,
+    key: String,
+) -> Result<Option<Constant>, String> {
     let mut result: Vec<Constant> = constants::table
         .filter(constants::dsl::key.eq(key.clone()))
         .load(connection)
@@ -148,23 +171,19 @@ pub fn get_constant(connection: &SqliteConnection, key: String) -> Result<Consta
                 e.to_string()
             )
         })?;
-    match result.len() {
-        0 => Err(format!("could not find constant: {}", key)),
-        1 => Ok(result.pop().unwrap()),
-        _ => Err(format!(
-            "schema violation: multiple values found for key: {}",
-            key
-        )),
-    }
+
+    Ok(result.pop())
 }
 
 pub fn add_alias(
     connection: &SqliteConnection,
-    command: String,
+    command: Vec<String>,
     alias: String,
 ) -> Result<(), String> {
+    let serial: String = serde_json::to_string(&command)
+        .map_err(|e| format!("could not serialize command: {}", e.to_string()))?;
     let alias = NewAlias {
-        command: &command,
+        command: &serial,
         alias: &alias,
     };
     diesel::insert_into(aliases::table)
@@ -189,7 +208,7 @@ pub fn remove_alias(connection: &SqliteConnection, alias: String) -> Result<(), 
 pub fn change_constant(
     connection: &SqliteConnection,
     key: String,
-    value: Option<String>,
+    value: String,
 ) -> Result<(), String> {
     let result = diesel::update(constants::table)
         .filter(constants::dsl::key.eq(key.clone()))

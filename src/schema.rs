@@ -10,7 +10,7 @@ table! {
     constants (id) {
         id -> Integer,
         key -> Text,
-        value -> Nullable<Text>,
+        value -> Text,
     }
 }
 
