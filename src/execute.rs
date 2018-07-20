@@ -5,6 +5,7 @@ use command::Command;
 use diesel;
 use diesel::sqlite::SqliteConnection;
 use diesel::RunQueryDsl;
+use queries::add_admin;
 use queries::add_alias;
 use queries::add_class;
 use queries::change_active;
@@ -13,6 +14,7 @@ use queries::change_freq;
 use queries::change_name;
 use queries::get_classes;
 use queries::get_instances;
+use queries::remove_admin;
 use queries::remove_alias;
 use queries::remove_class;
 use queries::remove_instance;
@@ -93,6 +95,7 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
         Command::AddAliasCommand(alias, cmd) => {
             add_alias(connection, cmd, alias).map(|()| "ok".to_string())
         }
+        Command::AddAdmin(uid) => add_admin(connection, uid).map(|()| "ok".to_string()),
         Command::RemoveInstances => diesel::delete(npc_instances::table)
             .execute(connection)
             .map(|c| format!("deleted instances: {}", c))
@@ -102,6 +105,7 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
         Command::RemoveAliasCommand(alias) => {
             remove_alias(connection, alias).map(|()| "ok".to_string())
         }
+        Command::RemoveAdmin(uid) => remove_admin(connection, uid).map(|()| "ok".to_string()),
         Command::ChangeClassName(old, new) => {
             change_name(connection, old, new).map(|()| "ok".to_string())
         }

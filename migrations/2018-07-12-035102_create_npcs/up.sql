@@ -24,3 +24,8 @@ CREATE TABLE `aliases` (
 	`alias`	TEXT NOT NULL UNIQUE,
 	`command`	TEXT NOT NULL
 );
+
+CREATE TABLE `admins` (
+	`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	`user_id`	TEXT NOT NULL UNIQUE
+);

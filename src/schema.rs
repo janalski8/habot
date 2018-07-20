@@ -1,4 +1,11 @@
 table! {
+    admins (id) {
+        id -> Integer,
+        user_id -> Text,
+    }
+}
+
+table! {
     aliases (id) {
         id -> Integer,
         alias -> Text,
@@ -34,4 +41,4 @@ table! {
 
 joinable!(npc_instances -> npc_classes (class));
 
-allow_tables_to_appear_in_same_query!(aliases, constants, npc_classes, npc_instances,);
+allow_tables_to_appear_in_same_query!(admins, aliases, constants, npc_classes, npc_instances,);

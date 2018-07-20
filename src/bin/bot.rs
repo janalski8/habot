@@ -2,11 +2,12 @@ extern crate diesel;
 extern crate habot;
 extern crate serenity;
 extern crate shlex;
-extern crate itertools;
 
 use diesel::sqlite::SqliteConnection;
+use habot::command::parse_aliased;
 use habot::establish_connection;
 use habot::execute::execute_command;
+use habot::queries::get_aliases;
 use habot::queries::get_constant;
 use serenity::client::Context;
 use serenity::client::EventHandler;
@@ -14,8 +15,8 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::Client;
 use std::env;
-use habot::queries::get_aliases;
-use habot::command::parse_aliased;
+use serenity::model::user::User;
+use habot::queries::is_admin;
 
 struct Handler {
     url: String,
@@ -23,12 +24,15 @@ struct Handler {
 }
 
 impl Handler {
-    fn process(&self, connection: &SqliteConnection, text: String) -> Result<String, String> {
+    fn process(&self, connection: &SqliteConnection, text: String, author: User) -> Result<String, String> {
         let args = shlex::split(&text).ok_or_else(|| "malformed arguments string".to_string())?;
         let aliases = get_aliases(connection)?;
         let cmd = parse_aliased(args, aliases)?;
-        let result = execute_command(connection, cmd);
-        result
+        if !cmd.is_public() && !is_admin(connection, author.id.0)? {
+            Err("permission denied".to_string())
+        } else {
+            execute_command(connection, cmd)
+        }
     }
 }
 
@@ -51,7 +55,7 @@ impl EventHandler for Handler {
         };
 
         if let Some(text) = try_strip_of(&starter, &msg.content) {
-            let text = match self.process(&connection, text) {
+            let text = match self.process(&connection, text, msg.author) {
                 Err(e) => format!("Error: {}", e),
                 Ok(r) => r,
             };
@@ -62,11 +66,11 @@ impl EventHandler for Handler {
                 let mut result = Ok(());
                 for part in parts {
                     match msg.channel_id.say(part) {
-                        Ok(_) => {},
+                        Ok(_) => {}
                         Err(err) => {
                             result = Err(err);
                             break;
-                        },
+                        }
                     }
                 }
                 result
@@ -87,7 +91,7 @@ fn try_strip_of(starter: &str, text: &str) -> Option<String> {
     let mut parts = text.splitn(2, &starter);
     match parts.next().map(str::is_empty) {
         None | Some(false) => None,
-        Some(true) => parts.next().map(str::to_owned)
+        Some(true) => parts.next().map(str::to_owned),
     }
 }
 
@@ -109,15 +113,18 @@ fn main() -> Result<(), String> {
 }
 
 fn chunk_lines(input: String) -> Vec<String> {
-    let (mut parts, acc) = input.split('\n').fold((Vec::new(), String::new()), |(mut parts, mut acc), line|
-        if acc.len() + line.len() >= 2000 {
-            parts.push(acc);
-            (parts, line.to_string())
-        } else {
-            acc.push_str("\n");
-            acc.push_str(line);
-            (parts, acc)
-        }
+    let (mut parts, acc) = input.split('\n').fold(
+        (Vec::new(), String::new()),
+        |(mut parts, mut acc), line| {
+            if acc.len() + line.len() >= 2000 {
+                parts.push(acc);
+                (parts, line.to_string())
+            } else {
+                acc.push_str("\n");
+                acc.push_str(line);
+                (parts, acc)
+            }
+        },
     );
     parts.push(acc);
     parts

@@ -18,13 +18,24 @@ pub enum Command {
     ChangeClassActive(String, bool),
     FastForward(i32),
     ChangeStarter(String),
+    AddAdmin(u64),
+    RemoveAdmin(u64),
+}
+
+impl Command {
+    pub fn is_public(&self) -> bool {
+        match self {
+            &Command::ShowInstances |
+            &Command::ShowInstancesVerbose => true,
+            _ => false
+        }
+    }
 }
 
 pub fn parse_aliased(
     mut command: Vec<String>,
     aliases: HashMap<String, Vec<String>>,
 ) -> Result<Command, String> {
-
     if let Some(pattern) = command.get(0).and_then(|c| aliases.get(c)) {
         command.reverse();
         command.pop();
@@ -100,7 +111,8 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
         "available commands: \
          class [name] [freq: integer] [active?: true|false] | \
-         alias [alias] [command]"
+         alias [alias] [command] | \
+         admin [admin: mention]"
             .to_string()
     })?;
 
@@ -129,6 +141,17 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
             command.reverse();
             Ok(Command::AddAliasCommand(alias, command))
         }
+        "admin" => {
+            let raw_id = command
+                .pop()
+                .ok_or_else(|| format!("missing admin (requires mention)"))?;
+            let slice = raw_id
+                .get(2..(raw_id.len() - 1))
+                .ok_or_else(|| format!("could not parse admin mention: {}", raw_id))?;
+            let id = u64::from_str(slice)
+                .map_err(|e| format!("could not parse admin mention: {}", e.to_string()))?;
+            Ok(Command::AddAdmin(id))
+        }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }
 }
@@ -139,7 +162,8 @@ pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
          class [name] | \
          instance [id: integer] | \
          all_instances | \
-         alias [alias]"
+         alias [alias] | \
+         admin [admin: mention]"
             .to_string()
     })?;
 
@@ -163,6 +187,17 @@ pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
                 .pop()
                 .ok_or_else(|| format!("alias string missing"))?;
             Ok(Command::RemoveAliasCommand(alias))
+        }
+        "admin" => {
+            let raw_id = command
+                .pop()
+                .ok_or_else(|| format!("missing admin (requires mention)"))?;
+            let slice = raw_id
+                .get(2..(raw_id.len() - 1))
+                .ok_or_else(|| format!("could not parse admin mention: {}", raw_id))?;
+            let id = u64::from_str(slice)
+                .map_err(|e| format!("could not parse admin mention: {}", e.to_string()))?;
+            Ok(Command::RemoveAdmin(id))
         }
         arg => Err(format!("invalid command arguments: {}", arg)),
     }

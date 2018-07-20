@@ -6,13 +6,15 @@ use diesel::QueryDsl;
 use diesel::RunQueryDsl;
 use models::Alias;
 use models::Constant;
+use models::NewAdmin;
 use models::NewAlias;
 use models::NewNpcClass;
 use models::NpcClass;
 use models::NpcInstance;
-use schema::{aliases, constants, npc_classes, npc_instances};
+use schema::{admins, aliases, constants, npc_classes, npc_instances};
 use serde_json;
 use std::collections::HashMap;
+use models::Admin;
 
 pub fn add_class(
     connection: &SqliteConnection,
@@ -188,7 +190,7 @@ pub fn add_alias(
     diesel::insert_into(aliases::table)
         .values(&alias)
         .execute(connection)
-        .map_err(|e| format!("could not insert new npc: {}", e.to_string()))?;
+        .map_err(|e| format!("could not insert alias: {}", e.to_string()))?;
     Ok(())
 }
 
@@ -201,6 +203,49 @@ pub fn remove_alias(connection: &SqliteConnection, alias: String) -> Result<(), 
         0 => Err(format!("could not find alias: {}", alias)),
         1 => Ok(()),
         _ => Err(format!("schema violation? {} aliases deleted", result)),
+    }
+}
+
+pub fn is_admin(connection: &SqliteConnection, user_id: u64) -> Result<bool, String> {
+    let result: Vec<Admin> = admins::table
+        .filter(admins::dsl::user_id.eq(user_id.to_string()))
+        .load(connection)
+        .map_err(|e| {
+            format!(
+                "could not query database for admin {}: {}",
+                user_id,
+                e.to_string()
+            )
+        })?;
+
+    match result.len() {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(format!("schema violation? {} admins found", result.len())),
+    }
+}
+
+
+pub fn add_admin(connection: &SqliteConnection, user_id: u64) -> Result<(), String> {
+    let uid_txt = user_id.to_string();
+    let admin = NewAdmin { user_id: &uid_txt };
+    diesel::insert_into(admins::table)
+        .values(&admin)
+        .execute(connection)
+        .map_err(|e| format!("could not insert admin: {}", e.to_string()))?;
+    Ok(())
+}
+
+pub fn remove_admin(connection: &SqliteConnection, user_id: u64) -> Result<(), String> {
+    let uid_txt = user_id.to_string();
+    let result = diesel::delete(admins::table)
+        .filter(admins::dsl::user_id.eq(uid_txt))
+        .execute(connection)
+        .map_err(|e| format!("could not delete admin: {}", e.to_string()))?;
+    match result {
+        0 => Err(format!("could not find admin: {}", user_id)),
+        1 => Ok(()),
+        _ => Err(format!("schema violation? {} admins deleted", result)),
     }
 }
 
