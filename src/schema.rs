@@ -28,6 +28,7 @@ table! {
         commonality -> Integer,
         next_tick -> Timestamp,
         active -> Integer,
+        unique -> Integer,
     }
 }
 

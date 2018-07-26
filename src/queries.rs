@@ -21,6 +21,7 @@ pub fn add_class(
     name: String,
     commonality: i32,
     active: bool,
+    unique: bool,
 ) -> Result<(), String> {
     let time = Utc::now().naive_utc();
     let class = NewNpcClass {
@@ -28,6 +29,7 @@ pub fn add_class(
         commonality,
         next_tick: time,
         active: if active { 1 } else { 0 },
+        unique: if unique { 1 } else { 0 },
     };
     diesel::insert_into(npc_classes::table)
         .values(&class)
@@ -57,6 +59,25 @@ pub fn change_active(
         _ => Err(format!("schema violation? {} npcs {}activated", npcs, de)),
     }
 }
+
+pub fn change_unique(
+    connection: &SqliteConnection,
+    name: String,
+    unique: bool,
+) -> Result<(), String> {
+    let non = if unique { "" } else { "non-" };
+    let npcs = diesel::update(npc_classes::table)
+        .filter(npc_classes::dsl::name.eq(name.clone()))
+        .set((npc_classes::dsl::unique.eq(if unique { 1 } else { 0 })))
+        .execute(connection)
+        .map_err(|e| format!("could not make npc {}unique: {}", non, e.to_string()))?;
+    match npcs {
+        0 => Err(format!("could not find npc: {}", name)),
+        1 => Ok(()),
+        _ => Err(format!("schema violation? {} npcs made {}unique", npcs, non)),
+    }
+}
+
 
 pub fn change_name(
     connection: &SqliteConnection,

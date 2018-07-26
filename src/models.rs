@@ -8,6 +8,7 @@ pub struct NpcClass {
     pub commonality: i32,
     pub next_tick: NaiveDateTime,
     pub active: i32,
+    pub unique: i32
 }
 
 #[derive(Serialize, Deserialize, Queryable, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -42,8 +43,9 @@ pub struct Admin {
 pub struct NewNpcClass<'a> {
     pub name: &'a str,
     pub commonality: i32,
-    pub active: i32,
     pub next_tick: NaiveDateTime,
+    pub active: i32,
+    pub unique: i32
 }
 
 #[derive(Insertable, Debug)]

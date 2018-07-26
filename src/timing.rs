@@ -123,6 +123,29 @@ pub fn update_instances(connection: &SqliteConnection) -> Result<(), String> {
         .execute(connection)
         .map_err(|e| format!("could not remove old npc instances: {}", e))?;
 
+    let unique: Vec<NpcClass> = npc_classes::table
+        .filter(npc_classes::dsl::unique.eq(1))
+        .load(connection)
+        .map_err(|e| {
+            format!(
+                "could not query database for unique classes: {}",
+                e.to_string()
+            )
+        })?;
+
+    for class in unique {
+        if let Ok(first) = npc_instances::table
+            .filter(npc_instances::dsl::class.eq(class.id))
+            .order((npc_instances::dsl::active_until.desc(), npc_instances::dsl::id.desc()))
+            .first::<NpcInstance>(connection) {
+                diesel::delete(npc_instances::table)
+                    .filter(npc_instances::dsl::class.eq(class.id))
+                    .filter(npc_instances::dsl::id.ne(first.id))
+                    .execute(connection)
+                    .map_err(|e| format!("could not remove older unique npc instances: {}", e))?;
+        }
+    }
+
     Ok(())
 }
 

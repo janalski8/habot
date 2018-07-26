@@ -3,7 +3,8 @@ CREATE TABLE `npc_classes` (
 	`name`	TEXT NOT NULL UNIQUE,
 	`commonality`	INTEGER NOT NULL,
 	`next_tick`	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`active`	INTEGER NOT NULL DEFAULT 1
+	`active`	INTEGER NOT NULL DEFAULT 1,
+	`unique`	INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE `npc_instances` (

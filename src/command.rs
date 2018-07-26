@@ -1,4 +1,3 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -9,13 +8,14 @@ pub enum Command {
     ShowInstances,
     ShowInstancesVerbose,
     ShowClasses,
-    AddClass(String, i32, bool),
+    AddClass(String, i32, bool, bool),
     RemoveInstances,
     RemoveInstance(i32),
     RemoveClass(String),
     ChangeClassName(String, String),
     ChangeClassFreq(String, i32),
     ChangeClassActive(String, bool),
+    ChangeClassUnique(String, bool),
     FastForward(i32),
     ChangeStarter(String),
     AddAdmin(u64),
@@ -110,7 +110,7 @@ pub fn parse_show(mut command: Vec<String>) -> Result<Command, String> {
 pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
         "available commands: \
-         class [name] [freq: integer] [active?: true|false] | \
+         class [name] [freq: integer] [active?: true|false] [unique?: true|false] | \
          alias [alias] [command] | \
          admin [admin: mention]"
             .to_string()
@@ -121,13 +121,15 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
             let name = command.pop();
             let frequency = command.pop().map(|s| i32::from_str(&s));
             let active = bool::from_str(&command.pop().unwrap_or_else(|| "true".to_string()));
-            match (name, frequency, active) {
-                (None, _, _) => Err(format!("name unspecified")),
-                (_, None, _) => Err(format!("frequency unspecified")),
-                (_, Some(Err(_)), _) => Err(format!("invalid frequency (integer)")),
-                (_, _, Err(_)) => Err(format!("invalid active/inactive state (true/false)")),
-                (Some(name), Some(Ok(frequency)), Ok(active)) => {
-                    Ok(Command::AddClass(name, frequency, active))
+            let unique = bool::from_str(&command.pop().unwrap_or_else(|| "false".to_string()));
+            match (name, frequency, active, unique) {
+                (None, _, _, _) => Err(format!("name unspecified")),
+                (_, None, _, _) => Err(format!("frequency unspecified")),
+                (_, Some(Err(_)), _, _) => Err(format!("invalid frequency (integer)")),
+                (_, _, Err(_), _) => Err(format!("invalid active/inactive state (true/false)")),
+                (_, _, _, Err(_)) => Err(format!("invalid unique state (true/false)")),
+                (Some(name), Some(Ok(frequency)), Ok(active), Ok(unique)) => {
+                    Ok(Command::AddClass(name, frequency, active, unique))
                 }
             }
         }
@@ -220,7 +222,7 @@ pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
                 .ok_or_else(|| "class name missing".to_string())?;
             let key = command
                 .pop()
-                .ok_or_else(|| "available keys: name | freq | active".to_string())?;
+                .ok_or_else(|| "available keys: name | freq | active | unique".to_string())?;
             let value = command
                 .pop()
                 .ok_or_else(|| "new value missing".to_string())?;
@@ -237,6 +239,12 @@ pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
                         format!("invalid active (boolean) format: {}", e.to_string())
                     })?;
                     Ok(Command::ChangeClassActive(name, active))
+                }
+                "unique" => {
+                    let unique = bool::from_str(&value).map_err(|e| {
+                        format!("invalid unique (boolean) format: {}", e.to_string())
+                    })?;
+                    Ok(Command::ChangeClassUnique(name, unique))
                 }
                 arg => Err(format!("invalid key: {}", arg)),
             }

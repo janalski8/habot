@@ -22,6 +22,7 @@ use schema::npc_instances;
 use std::collections::HashMap;
 use timing::fast_forward_instances;
 use timing::update_instances;
+use queries::change_unique;
 
 pub fn execute_command(connection: &SqliteConnection, command: Command) -> Result<String, String> {
     match command {
@@ -89,8 +90,8 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
                 result.join("\n")
             })
         }
-        Command::AddClass(name, freq, active) => {
-            add_class(connection, name, freq, active).map(|()| "ok".to_string())
+        Command::AddClass(name, freq, active, unique) => {
+            add_class(connection, name, freq, active, unique).map(|()| "ok".to_string())
         }
         Command::AddAliasCommand(alias, cmd) => {
             add_alias(connection, cmd, alias).map(|()| "ok".to_string())
@@ -114,6 +115,9 @@ pub fn execute_command(connection: &SqliteConnection, command: Command) -> Resul
         }
         Command::ChangeClassActive(name, active) => {
             change_active(connection, name, active).map(|()| "ok".to_string())
+        }
+        Command::ChangeClassUnique(name, unique) => {
+            change_unique(connection, name, unique).map(|()| "ok".to_string())
         }
         Command::ChangeStarter(starter) => {
             change_constant(connection, "starter".to_string(), starter).map(|()| "ok".to_string())
