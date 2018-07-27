@@ -68,7 +68,7 @@ pub fn change_unique(
     let non = if unique { "" } else { "non-" };
     let npcs = diesel::update(npc_classes::table)
         .filter(npc_classes::dsl::name.eq(name.clone()))
-        .set((npc_classes::dsl::unique.eq(if unique { 1 } else { 0 })))
+        .set(npc_classes::dsl::unique.eq(if unique { 1 } else { 0 }))
         .execute(connection)
         .map_err(|e| format!("could not make npc {}unique: {}", non, e.to_string()))?;
     match npcs {

@@ -87,7 +87,7 @@ pub fn parse_command(mut command: Vec<String>) -> Result<Command, String> {
 
 pub fn parse_show(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: \
+        "available commands: \n\
          instance verbose? | \
          class"
             .to_string()
@@ -109,9 +109,9 @@ pub fn parse_show(mut command: Vec<String>) -> Result<Command, String> {
 
 pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: \
-         class [name] [freq: integer] [active?: true|false] [unique?: true|false] | \
-         alias [alias] [command] | \
+        "available commands:\n\
+         class [name] [freq: integer] [active?: true|false] [unique?: true|false]\n\
+         alias [alias] [command]\n\
          admin [admin: mention]"
             .to_string()
     })?;
@@ -160,11 +160,11 @@ pub fn parse_add(mut command: Vec<String>) -> Result<Command, String> {
 
 pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: \
-         class [name] | \
-         instance [id: integer] | \
-         all_instances | \
-         alias [alias] | \
+        "available commands:\n\
+         class [name]\n\
+         instance [id: integer]\n\
+         all_instances\n\
+         alias [alias]\n\
          admin [admin: mention]"
             .to_string()
     })?;
@@ -207,10 +207,11 @@ pub fn parse_remove(mut command: Vec<String>) -> Result<Command, String> {
 
 pub fn parse_change(mut command: Vec<String>) -> Result<Command, String> {
     let target = command.pop().ok_or_else(|| {
-        "available commands: \
-         class [old_name] name [name] | \
-         class [name] freq [freq: i32] | \
-         class [name] active [active: true|false] | \
+        "available commands:\n\
+         class [old_name] name [name]\n\
+         class [name] freq [freq: i32]\n\
+         class [name] active [active: true|false]\n\
+         class [name] unique [unique: true|false]\n\
          starter [starter_string]"
             .to_string()
     })?;
